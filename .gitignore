@@ -1,2 +1,13 @@
 .DS_Store
 *.dmg
+
+# Signing keys
+*.pem
+*.key
+*.p12
+eddsa_priv_key
+dsa_priv.pem
+
+# Environment
+.env
+.env.*
