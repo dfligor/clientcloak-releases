@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClientCloak Security</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0f0f1a;
+        color: #d0d0e0;
+        line-height: 1.7;
+    }
+
+    /* Sidebar navigation */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 220px;
+        height: 100vh;
+        background: #1a1a2e;
+        border-right: 1px solid rgba(0, 217, 255, 0.1);
+        padding: 24px 0;
+        overflow-y: auto;
+    }
+    .sidebar-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #ffffff;
+        padding: 0 20px 16px 20px;
+        border-bottom: 1px solid rgba(0, 217, 255, 0.1);
+        margin-bottom: 12px;
+    }
+    .sidebar-title span { color: #00d9ff; }
+    .sidebar a {
+        display: block;
+        padding: 6px 20px;
+        color: #8888aa;
+        text-decoration: none;
+        font-size: 13px;
+        transition: all 0.15s;
+    }
+    .sidebar a:hover {
+        color: #00d9ff;
+        background: rgba(0, 217, 255, 0.05);
+    }
+    .sidebar a.section-link {
+        font-weight: 500;
+        color: #b0b0c8;
+        margin-top: 8px;
+    }
+
+    /* Main content */
+    .content {
+        margin-left: 220px;
+        max-width: 760px;
+        padding: 40px 48px 80px 48px;
+    }
+
+    h1 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 8px;
+    }
+    h1 span { color: #00d9ff; }
+
+    h2 {
+        font-size: 20px;
+        font-weight: 600;
+        color: #ffffff;
+        margin: 48px 0 16px 0;
+        padding-top: 16px;
+        border-top: 1px solid #2a2a3e;
+    }
+    h2:first-of-type { border-top: none; margin-top: 32px; }
+
+    h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #e0e0f0;
+        margin: 28px 0 12px 0;
+    }
+
+    p {
+        margin-bottom: 16px;
+        font-size: 14px;
+    }
+
+    .subtitle {
+        font-size: 15px;
+        color: #8888aa;
+        margin-bottom: 32px;
+    }
+
+    .highlight {
+        color: #00d9ff;
+        font-weight: 500;
+    }
+
+    .privacy-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0, 217, 255, 0.08);
+        border: 1px solid rgba(0, 217, 255, 0.2);
+        border-radius: 6px;
+        padding: 8px 14px;
+        font-size: 13px;
+        color: #00d9ff;
+        margin-bottom: 24px;
+    }
+
+    ul {
+        margin: 0 0 16px 24px;
+        font-size: 14px;
+    }
+    li { margin-bottom: 6px; }
+
+    a { color: #00d9ff; }
+
+    /* Info card */
+    .info-card {
+        background: #1a1a2e;
+        border: 1px solid #2a2a3e;
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+        font-size: 14px;
+    }
+    .info-card strong { color: #e0e0f0; }
+
+    /* Tables */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0 24px 0;
+        font-size: 13px;
+    }
+    thead th {
+        text-align: left;
+        padding: 10px 12px;
+        background: #1a1a2e;
+        color: #b0b0c8;
+        font-weight: 600;
+        border-bottom: 2px solid #2a2a3e;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    tbody td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #1e1e32;
+        vertical-align: top;
+    }
+    tbody tr:nth-child(even) {
+        background: rgba(26, 26, 46, 0.5);
+    }
+    tbody tr:hover {
+        background: rgba(0, 217, 255, 0.03);
+    }
+
+    /* Status indicators */
+    .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+    .status::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+    .status-addressed { color: #4ade80; }
+    .status-addressed::before { background: #4ade80; }
+    .status-partial { color: #fbbf24; }
+    .status-partial::before { background: #fbbf24; }
+    .status-na { color: #6b7280; }
+    .status-na::before { background: #6b7280; }
+
+    /* CI pipeline table */
+    .pipeline-table td:first-child {
+        font-weight: 500;
+        color: #e0e0f0;
+    }
+
+    /* Keyboard shortcut styling */
+    kbd {
+        background: #2a2a3e;
+        border: 1px solid #3a3a4e;
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-size: 12px;
+        font-family: -apple-system, monospace;
+        color: #d0d0e0;
+    }
+
+    /* Disclosure section */
+    .disclosure-card {
+        background: rgba(0, 217, 255, 0.04);
+        border: 1px solid rgba(0, 217, 255, 0.15);
+        border-radius: 8px;
+        padding: 20px 24px;
+        margin: 16px 0 24px 0;
+    }
+    .disclosure-card p {
+        margin-bottom: 10px;
+    }
+    .disclosure-card p:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Section group title */
+    .group-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #8888aa;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 32px 0 8px 0;
+    }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <div class="sidebar-title">Client<span>Cloak</span> Security</div>
+    <a href="#architecture" class="section-link">Architecture</a>
+    <a href="#privacy" class="section-link">Privacy by Design</a>
+    <a href="#controls" class="section-link">Security Controls</a>
+    <a href="#auth">&nbsp;&nbsp;Authentication</a>
+    <a href="#network">&nbsp;&nbsp;Network Security</a>
+    <a href="#input">&nbsp;&nbsp;Input Validation</a>
+    <a href="#doc-scanning">&nbsp;&nbsp;Document Scanning</a>
+    <a href="#signing">&nbsp;&nbsp;Code Signing</a>
+    <a href="#errors">&nbsp;&nbsp;Error Handling</a>
+    <a href="#cicd" class="section-link">CI/CD Pipeline</a>
+    <a href="#sbom" class="section-link">SBOM</a>
+    <a href="#nist" class="section-link">NIST SSDF</a>
+    <a href="#nist-po">&nbsp;&nbsp;PO: Prepare</a>
+    <a href="#nist-ps">&nbsp;&nbsp;PS: Protect</a>
+    <a href="#nist-pw">&nbsp;&nbsp;PW: Produce</a>
+    <a href="#nist-rv">&nbsp;&nbsp;RV: Respond</a>
+    <a href="#owasp" class="section-link">OWASP Desktop Top 10</a>
+    <a href="#disclosure" class="section-link">Vulnerability Disclosure</a>
+    <a href="#opensource" class="section-link">Open Source</a>
+</nav>
+
+<main class="content">
+
+    <h1>Client<span>Cloak</span> Security</h1>
+    <p class="subtitle">Security architecture, controls, and compliance posture</p>
+
+    <div class="privacy-badge">
+        All processing happens locally on your Mac &mdash; no data ever leaves your computer.
+    </div>
+
+    <!-- ============================================ -->
+    <h2 id="architecture">Architecture Overview</h2>
+
+    <p>ClientCloak runs entirely on the user's machine. There is no cloud backend, no remote processing, and no telemetry.</p>
+
+    <ul>
+        <li><strong>Local-only processing.</strong> Document parsing, entity detection (pattern matching + on-device ML model), cloaking, and uncloaking all execute locally. The ML model is bundled inside the <kbd>.app</kbd> bundle.</li>
+        <li><strong>No analytics or telemetry.</strong> The app does not phone home, collect usage data, or transmit any document content.</li>
+        <li><strong>Single network call.</strong> The only outbound request is a one-time HTTPS POST to <kbd>api.gumroad.com</kbd> for license key verification. No document data is included.</li>
+        <li><strong>Localhost server architecture.</strong> A FastAPI server binds to <kbd>127.0.0.1</kbd> on a random high port. A native WebKit window connects to this local server. No external network interfaces are exposed.</li>
+    </ul>
+
+    <!-- ============================================ -->
+    <h2 id="privacy">Privacy by Design</h2>
+
+    <p>ClientCloak exists because attorneys need to anonymize client information before using AI tools &mdash; a requirement articulated by ABA Formal Opinion 512 and California COPRAC guidance.</p>
+
+    <ul>
+        <li><strong>EULA Section 5</strong> commits that all document processing occurs locally and no client data is transmitted to any external server.</li>
+        <li><strong>No data collection.</strong> No usage analytics, no crash reporting, no feature telemetry.</li>
+        <li><strong>No third-party SDKs</strong> that could exfiltrate data. Only open-source Python libraries with auditable source code.</li>
+        <li><strong>Offline operation.</strong> After initial license activation, the app functions entirely offline.</li>
+    </ul>
+
+    <!-- ============================================ -->
+    <h2 id="controls">Application Security Controls</h2>
+
+    <!-- Auth -->
+    <h3 id="auth">Authentication &amp; Session Management</h3>
+
+    <ul>
+        <li><strong>Per-session auth token.</strong> A cryptographically random token (<kbd>secrets.token_urlsafe(32)</kbd>) is generated fresh on every launch. All API requests must include this token.</li>
+        <li><strong>ASGI middleware enforcement.</strong> Requests missing or carrying an invalid token receive HTTP 403. Only <kbd>/_health</kbd> and <kbd>/static/</kbd> are exempt.</li>
+        <li><strong>JS fetch interceptor.</strong> Injected on page load to automatically append the session token to all API requests, ensuring authentication without cookies.</li>
+    </ul>
+
+    <!-- Network -->
+    <h3 id="network">Network Security</h3>
+
+    <ul>
+        <li><strong>Localhost-only binding.</strong> The server binds exclusively to <kbd>127.0.0.1</kbd>, never <kbd>0.0.0.0</kbd>. Not reachable from the network.</li>
+        <li><strong>SSRF prevention.</strong> Download URLs are validated by parsing and comparing scheme, hostname, and port against the local server. Crafted URLs are rejected.</li>
+        <li><strong>Server identity verification.</strong> Startup health check confirms the server responds with <kbd>{"app": "clientcloak"}</kbd>, mitigating TOCTOU races.</li>
+        <li><strong>Security headers.</strong> CSP, X-Frame-Options, X-Content-Type-Options, and other headers on all responses.</li>
+    </ul>
+
+    <!-- Input -->
+    <h3 id="input">Input Validation</h3>
+
+    <ul>
+        <li><strong>Path traversal protection.</strong> Filenames stripped to base name via <kbd>Path(filename).name</kbd>. Session IDs validated, resolved paths checked for containment.</li>
+        <li><strong>Filename sanitization.</strong> Output filenames sanitized to prevent party names from leaking through the filesystem.</li>
+        <li><strong>Upload size limits.</strong> 100 MB for <kbd>.docx</kbd> uploads, 10 MB for mapping files, enforced via chunked streaming.</li>
+        <li><strong>XML injection prevention.</strong> Comment processing uses <kbd>defusedxml</kbd> to prevent entity expansion attacks.</li>
+    </ul>
+
+    <!-- Doc Scanning -->
+    <h3 id="doc-scanning">Document Security Scanning</h3>
+
+    <p>Before cloaking begins, the uploaded document is scanned for:</p>
+    <ul>
+        <li><strong>Prompt injection detection</strong> &mdash; Text patterns designed to manipulate AI systems</li>
+        <li><strong>Hidden text detection</strong> &mdash; White-on-white formatting, zero-width characters, <kbd>vanish</kbd> styles</li>
+        <li><strong>Invisible Unicode detection</strong> &mdash; Zero-width spaces, joiners, and other invisible characters</li>
+        <li><strong>Metadata scanning</strong> &mdash; Document properties that could leak sensitive information</li>
+    </ul>
+
+    <!-- Signing -->
+    <h3 id="signing">Code Signing &amp; Distribution</h3>
+
+    <ul>
+        <li><strong>Developer ID certificate.</strong> The <kbd>.app</kbd> bundle is signed with an Apple Developer ID Application certificate.</li>
+        <li><strong>Hardened runtime.</strong> Signed with <kbd>--options runtime</kbd> for library validation, memory protection, and debugging restrictions.</li>
+        <li><strong>Minimal entitlements.</strong> Only the permissions the app actually needs.</li>
+        <li><strong>Notarization.</strong> Every release is submitted to Apple's notarization service and stapled for Gatekeeper approval.</li>
+        <li><strong>DMG signing.</strong> The installer DMG is also code-signed.</li>
+    </ul>
+
+    <!-- Errors -->
+    <h3 id="errors">Error Handling</h3>
+
+    <ul>
+        <li><strong>Generic error messages.</strong> No internal paths, stack traces, or implementation details in API responses.</li>
+        <li><strong>Sanitized responses.</strong> Exceptions caught and returned as structured JSON with safe messages.</li>
+        <li><strong>No debug mode in production.</strong> The frozen build runs with production settings only.</li>
+    </ul>
+
+    <!-- ============================================ -->
+    <h2 id="cicd">CI/CD Security Pipeline</h2>
+
+    <p>Automated checks run on every push and pull request via GitHub Actions:</p>
+
+    <table class="pipeline-table">
+        <thead>
+            <tr><th>Tool</th><th>Purpose</th><th>Scope</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>pip-audit</td>
+                <td>Dependency vulnerability scanning</td>
+                <td>All installed Python packages</td>
+            </tr>
+            <tr>
+                <td>TruffleHog</td>
+                <td>Secret detection</td>
+                <td>Full git history (verified secrets only)</td>
+            </tr>
+            <tr>
+                <td>Bandit</td>
+                <td>Static application security testing (SAST)</td>
+                <td>desktop.py, hooks/</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p>The security workflow also runs on a weekly schedule (Monday 08:00 UTC) for ongoing monitoring.</p>
+
+    <!-- ============================================ -->
+    <h2 id="sbom">Software Bill of Materials</h2>
+
+    <p>Each release includes a CycloneDX SBOM (<kbd>ClientCloak-{version}.sbom.json</kbd>) generated from the build environment. The SBOM catalogs every Python package and its version included in the frozen application bundle.</p>
+
+    <p>Generated via <kbd>cyclonedx-py environment --output-format json</kbd>.</p>
+
+    <!-- ============================================ -->
+    <h2 id="nist">NIST SSDF SP 800-218 Self-Assessment</h2>
+
+    <p>The NIST Secure Software Development Framework defines practices across four groups. This is a self-assessment for a single-developer indie product, not a third-party audit.</p>
+
+    <!-- PO -->
+    <p class="group-title" id="nist-po">PO: Prepare the Organization</p>
+
+    <table>
+        <thead>
+            <tr><th>Practice</th><th>Status</th><th>Evidence</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>PO.1 &mdash; Define security requirements</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>Security controls documented here; EULA Section 5 defines data handling</td>
+            </tr>
+            <tr>
+                <td>PO.2 &mdash; Implement roles and responsibilities</td>
+                <td><span class="status status-na">N/A</span></td>
+                <td>Single-developer project</td>
+            </tr>
+            <tr>
+                <td>PO.3 &mdash; Implement supporting toolchain</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>CI with pip-audit, TruffleHog, Bandit; CycloneDX SBOM</td>
+            </tr>
+            <tr>
+                <td>PO.4 &mdash; Define criteria for security checks</td>
+                <td><span class="status status-partial">Partial</span></td>
+                <td>Automated CI checks; manual review; no formal gate criteria</td>
+            </tr>
+            <tr>
+                <td>PO.5 &mdash; Maintain secure environments</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>Ephemeral build venv; signing keys in macOS Keychain; hardened runtime</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- PS -->
+    <p class="group-title" id="nist-ps">PS: Protect the Software</p>
+
+    <table>
+        <thead>
+            <tr><th>Practice</th><th>Status</th><th>Evidence</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>PS.1 &mdash; Protect all forms of code</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>Private GitHub repo; branch protection; no credentials in source</td>
+            </tr>
+            <tr>
+                <td>PS.2 &mdash; Verify software integrity</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>Apple code signing + notarization; verifiable via codesign and spctl</td>
+            </tr>
+            <tr>
+                <td>PS.3 &mdash; Archive and protect releases</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>Signed DMGs via GitHub Releases; git tags per version</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- PW -->
+    <p class="group-title" id="nist-pw">PW: Produce Well-Secured Software</p>
+
+    <table>
+        <thead>
+            <tr><th>Practice</th><th>Status</th><th>Evidence</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>PW.1 &mdash; Design to meet security requirements</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>Local-only architecture; per-session auth; SSRF prevention; path traversal protection</td>
+            </tr>
+            <tr>
+                <td>PW.2 &mdash; Review software design</td>
+                <td><span class="status status-partial">Partial</span></td>
+                <td>Architecture documented; no formal threat model</td>
+            </tr>
+            <tr>
+                <td>PW.4 &mdash; Reuse well-secured software</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>FastAPI, Starlette, defusedxml, httpx &mdash; well-maintained open-source libraries</td>
+            </tr>
+            <tr>
+                <td>PW.5 &mdash; Secure coding practices</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>Input validation, output encoding, no eval()/exec() on user input</td>
+            </tr>
+            <tr>
+                <td>PW.6 &mdash; Configure build processes</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>PyInstaller with hardened runtime; entitlements.plist; clean builds</td>
+            </tr>
+            <tr>
+                <td>PW.7 &mdash; Review human-readable code</td>
+                <td><span class="status status-partial">Partial</span></td>
+                <td>Manual review; Bandit SAST in CI; no formal peer review</td>
+            </tr>
+            <tr>
+                <td>PW.8 &mdash; Test executable code</td>
+                <td><span class="status status-partial">Partial</span></td>
+                <td>QA framework with SEC EDGAR corpus; no unit tests for desktop wrapper</td>
+            </tr>
+            <tr>
+                <td>PW.9 &mdash; Secure settings by default</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>Hardened runtime default; auth required; no debug endpoints in production</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- RV -->
+    <p class="group-title" id="nist-rv">RV: Respond to Vulnerabilities</p>
+
+    <table>
+        <thead>
+            <tr><th>Practice</th><th>Status</th><th>Evidence</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>RV.1 &mdash; Identify and confirm vulnerabilities</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>pip-audit for CVEs; Bandit for code issues; weekly scheduled scans</td>
+            </tr>
+            <tr>
+                <td>RV.2 &mdash; Assess, prioritize, remediate</td>
+                <td><span class="status status-partial">Partial</span></td>
+                <td>Dependency updates applied promptly; no formal SLA</td>
+            </tr>
+            <tr>
+                <td>RV.3 &mdash; Analyze root causes</td>
+                <td><span class="status status-partial">Partial</span></td>
+                <td>Post-fix analysis done informally; no formal process</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ============================================ -->
+    <h2 id="owasp">OWASP Desktop Application Security Top 10</h2>
+
+    <table>
+        <thead>
+            <tr><th>ID</th><th>Risk</th><th>Status</th><th>Implementation</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>DA1</td>
+                <td>Injections</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>defusedxml for XML; no SQL; no shell construction from user input</td>
+            </tr>
+            <tr>
+                <td>DA2</td>
+                <td>Broken Auth &amp; Sessions</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>Per-session cryptographic token; ASGI middleware enforcement</td>
+            </tr>
+            <tr>
+                <td>DA3</td>
+                <td>Sensitive Data Exposure</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>Local-only processing; no telemetry; generic error messages</td>
+            </tr>
+            <tr>
+                <td>DA4</td>
+                <td>Improper Cryptography</td>
+                <td><span class="status status-na">N/A</span></td>
+                <td>No custom cryptography; relies on Apple code signing and HTTPS</td>
+            </tr>
+            <tr>
+                <td>DA5</td>
+                <td>Improper Authorization</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>Token required for all endpoints; file access scoped to sessions</td>
+            </tr>
+            <tr>
+                <td>DA6</td>
+                <td>Security Misconfiguration</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>Hardened runtime; minimal entitlements; security headers; no debug mode</td>
+            </tr>
+            <tr>
+                <td>DA7</td>
+                <td>Insecure Communication</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>Localhost-only server; SSRF prevention; HTTPS for Gumroad call</td>
+            </tr>
+            <tr>
+                <td>DA8</td>
+                <td>Poor Code Quality</td>
+                <td><span class="status status-partial">Partial</span></td>
+                <td>Bandit SAST; consistent style; no formal linting enforcement</td>
+            </tr>
+            <tr>
+                <td>DA9</td>
+                <td>Known Vulnerabilities</td>
+                <td><span class="status status-addressed">Addressed</span></td>
+                <td>pip-audit in CI; weekly scans; CycloneDX SBOM</td>
+            </tr>
+            <tr>
+                <td>DA10</td>
+                <td>Insufficient Logging</td>
+                <td><span class="status status-partial">Partial</span></td>
+                <td>Python logging for operations; no centralized collection (appropriate for local-only app)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ============================================ -->
+    <h2 id="disclosure">Vulnerability Disclosure Policy</h2>
+
+    <div class="disclosure-card">
+        <p>If you discover a security vulnerability in ClientCloak, please report it responsibly.</p>
+        <p><strong>Email:</strong> <span class="highlight">security@makingreign.com</span></p>
+        <p><strong>Acknowledgment:</strong> Within 48 hours</p>
+        <p><strong>Initial assessment:</strong> Within 7 days</p>
+    </div>
+
+    <p><strong>Scope:</strong> The commercial desktop application and the open-source engine (<a href="https://github.com/dfligor/clientcloak">github.com/dfligor/clientcloak</a>).</p>
+
+    <p>Please include a description of the vulnerability, steps to reproduce, affected version(s), and impact assessment if known.</p>
+
+    <p>We do not currently operate a bug bounty program, but we will credit reporters (with permission) in release notes for confirmed vulnerabilities.</p>
+
+    <p><strong>Out of scope:</strong> Social engineering, phishing, denial of service, and issues in third-party dependencies that have already been reported upstream.</p>
+
+    <!-- ============================================ -->
+    <h2 id="opensource">Open Source Transparency</h2>
+
+    <p>The core cloaking engine that powers ClientCloak is open source under the MIT License:</p>
+
+    <div class="info-card">
+        <p><strong>Repository:</strong> <a href="https://github.com/dfligor/clientcloak">github.com/dfligor/clientcloak</a></p>
+        <p><strong>License:</strong> MIT</p>
+    </div>
+
+    <p>The engine handles document parsing, entity detection, replacement, cloaking, and uncloaking. You can audit exactly how your documents are processed.</p>
+
+    <p>The commercial desktop application adds the native macOS wrapper, bundled ML model, curated prompts, and attorney-focused workflow. It is distributed under a proprietary EULA.</p>
+
+</main>
+
+</body>
+</html>
