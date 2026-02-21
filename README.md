@@ -33,9 +33,13 @@ The native Mac app wraps this engine with a native window, bundled models, curat
 3. Launch ClientCloak from Applications
 4. Accept the license agreement on first launch
 
+## Security
+
+Architecture, controls, and compliance posture: [Security](https://dfligor.github.io/clientcloak-releases/security.html)
+
 ## License
 
-The ClientCloak Mac app binary is distributed under the [End User License Agreement](LICENSE.md).
+The ClientCloak Mac app binary is distributed under the [End User License Agreement](https://dfligor.github.io/clientcloak-releases/eula.html).
 The open source engine is available under the [MIT License](https://github.com/dfligor/clientcloak/blob/main/LICENSE).
 
 ## Support
